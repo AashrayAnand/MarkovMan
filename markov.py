@@ -27,7 +27,7 @@ class Reader:
         self.dict = {}
         self.seq_count = {}
         # read the input data
-        self.first_words = {}
+        self.first_words = []
         self.sentence_len = 0
         self.read_file(file)
 
@@ -44,10 +44,7 @@ class Reader:
             words = word_tokenize(sentence)
             self.sentence_len += len(words)
             if len(words) > 0:
-                if words[0] in self.first_words.keys():
-                    self.first_words[words[0]] += 1
-                else:
-                    self.first_words[words[0]] = 1
+                self.first_words.append(words[0])
             # if we iterate up to ORDER words from the end of
             # the sentence, we can construct a sequence of length
             # ORDER, and get the successor, which is ORDER indices
@@ -61,22 +58,11 @@ class Reader:
                 # sequence, and the number of ocurrences of
                 # this successor word to the specified sequence
                 if not sequence in self.dict.keys():
-                    self.dict[sequence] = {}
+                    self.dict[sequence] = [successor]
                     self.seq_count[sequence] = 1
                 else:
                     self.seq_count[sequence] += 1
-                    
-                if not successor in self.dict[sequence].keys():
-                    self.dict[sequence][successor] = 1
-                else:
-                    self.dict[sequence][successor] += 1
-        for key in self.first_words:
-            self.first_words[key] /= len(self.sentences)
-        for key in self.dict.keys():
-            for key_ in self.dict[key].keys():
-                self.dict[key][key_] /= self.seq_count[key]
-        for k in self.dict.keys():
-            print(self.dict[k])
+                    self.dict[sequence].append(successor)
         self.sentence_len //= len(self.sentences)
 
 class Writer:
@@ -88,15 +74,19 @@ class Writer:
             self.writeSentence()
     
     def writeSentence(self):
-        res = random.choices(list(self.reader.first_words.keys()), 
-                             list(self.reader.first_words.values()),
-                             k=1)[0]
+        # choose a first word for the sentence randomly
+        res = random.choice(self.reader.first_words)
+        # store the current prefix
         curr = res
         for _ in range(self.reader.sentence_len):
-            curr = random.choices(list(self.reader.dict[curr].keys()),
-                                  list(self.reader.dict[curr].values()),
-                                  k=1)[0]
+            # choose a random suffix for the current prefix, the
+            # probability distribution is naturally weighted by the
+            # number of ocurrences of each unique suffix after the
+            # current prefix, update the current prefix as well
+            curr = random.choice(self.reader.dict[curr])
+            # build the sentence up
             res += " " + curr
+        # output the produced sentence
         print(res)
     
 def main():
